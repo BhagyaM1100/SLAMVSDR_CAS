@@ -23,7 +23,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:src="@android:drawable/ic_dialog_dialer"
-                android:tint="#2196F3" />
+                app:tint="#2196F3" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -63,7 +63,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@android:drawable/stat_sys_download"
-                        android:tint="#e74c3c" />
+                        app:tint="#e74c3c" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -182,7 +182,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@android:drawable/arrow_down_float"
-                        android:tint="#9b59b6" />
+                        app:tint="#9b59b6" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -295,7 +295,7 @@
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:src="@android:drawable/presence_online"
-                    android:tint="#27ae60" />
+                    app:tint="#27ae60" />
 
                 <TextView
                     android:layout_width="wrap_content"
