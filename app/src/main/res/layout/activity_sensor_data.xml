@@ -22,13 +22,13 @@
             <ImageView
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:src="@android:drawable/ic_dialog_dialer"
-                app:tint="#2196F3" />
+                android:src="@android:drawable/stat_sys_data_bluetooth"
+                app:tint="#3498db" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="SLAM vs DR Sensor Data"
+                android:text="Sensor Data"
                 android:textSize="24sp"
                 android:textStyle="bold"
                 android:textColor="#2c3e50"
@@ -92,7 +92,7 @@
                         android:textSize="14sp" />
 
                     <TextView
-                        android:id="@+id/accel_x_text"
+                        android:id="@+id/sensor_accel_x_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0.00 m/s²"
@@ -117,7 +117,7 @@
                         android:textSize="14sp" />
 
                     <TextView
-                        android:id="@+id/accel_y_text"
+                        android:id="@+id/sensor_accel_y_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0.00 m/s²"
@@ -142,7 +142,7 @@
                         android:textSize="14sp" />
 
                     <TextView
-                        android:id="@+id/accel_z_text"
+                        android:id="@+id/sensor_accel_z_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0.00 m/s²"
@@ -211,7 +211,7 @@
                         android:textSize="14sp" />
 
                     <TextView
-                        android:id="@+id/gyro_x_text"
+                        android:id="@+id/sensor_gyro_x_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0.00 rad/s"
@@ -236,7 +236,7 @@
                         android:textSize="14sp" />
 
                     <TextView
-                        android:id="@+id/gyro_y_text"
+                        android:id="@+id/sensor_gyro_y_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0.00 rad/s"
@@ -261,7 +261,7 @@
                         android:textSize="14sp" />
 
                     <TextView
-                        android:id="@+id/gyro_z_text"
+                        android:id="@+id/sensor_gyro_z_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0.00 rad/s"
@@ -275,251 +275,16 @@
 
         </androidx.cardview.widget.CardView>
 
-        <!-- Dead Reckoning Card -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
+        <!-- Back Button -->
+        <Button
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@android:color/white">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <!-- Card Header -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingBottom="12dp">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/ic_menu_compass"
-                        app:tint="#f39c12" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="DEAD RECKONING"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:textColor="#f39c12"
-                        android:layout_marginStart="8dp" />
-
-                </LinearLayout>
-
-                <!-- Position Data -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingVertical="8dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Position X:"
-                        android:textColor="#7f8c8d"
-                        android:textSize="14sp" />
-
-                    <TextView
-                        android:id="@+id/position_x_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0.00 m"
-                        android:textColor="#2c3e50"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingVertical="8dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Position Y:"
-                        android:textColor="#7f8c8d"
-                        android:textSize="14sp" />
-
-                    <TextView
-                        android:id="@+id/position_y_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0.00 m"
-                        android:textColor="#2c3e50"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingVertical="8dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Position Z:"
-                        android:textColor="#7f8c8d"
-                        android:textSize="14sp" />
-
-                    <TextView
-                        android:id="@+id/position_z_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0.00 m"
-                        android:textColor="#2c3e50"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
-
-                <!-- Velocity Data -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingVertical="8dp"
-                    android:paddingTop="16dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Total Velocity:"
-                        android:textColor="#7f8c8d"
-                        android:textSize="14sp" />
-
-                    <TextView
-                        android:id="@+id/velocity_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0.00 m/s"
-                        android:textColor="#e74c3c"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
-
-            </LinearLayout>
-
-        </androidx.cardview.widget.CardView>
-
-        <!-- Path Visualization Card -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:layout_marginTop="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@android:color/white">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:padding="8dp">
-
-                <!-- Card Header -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingBottom="8dp">
-
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@android:drawable/ic_menu_directions"
-                        app:tint="#2c3e50" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="DEAD RECKONING PATH"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="#2c3e50"
-                        android:layout_marginStart="8dp" />
-
-                </LinearLayout>
-
-                <!-- Drawing Canvas -->
-                <view
-                    android:id="@+id/path_canvas"
-                    class="com.example.slamvsdr.PathCanvasView"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:background="#f8f9fa" />
-
-                <!-- Reset Button -->
-                <Button
-                    android:id="@+id/reset_button"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Reset Path"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="8dp"
-                    android:backgroundTint="#e74c3c"
-                    android:textColor="@android:color/white" />
-
-            </LinearLayout>
-
-        </androidx.cardview.widget.CardView>
-
-        <!-- Status Card -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
-            app:cardBackgroundColor="#e8f5e8">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="16dp"
-                android:gravity="center_vertical">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@android:drawable/presence_online"
-                    app:tint="#27ae60" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Sensors Active - Data Streaming"
-                    android:textColor="#27ae60"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:layout_marginStart="8dp" />
-
-            </LinearLayout>
-
-        </androidx.cardview.widget.CardView>
+            android:text="Back to Menu"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="24dp"
+            android:onClick="onBackButtonClick"
+            android:backgroundTint="#3498db"
+            android:textColor="@android:color/white" />
 
     </LinearLayout>
 

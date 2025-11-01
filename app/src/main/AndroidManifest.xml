@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
+    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -11,15 +11,27 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.SLAMvsDR">
+
+        <!-- MAIN MENU should be the LAUNCHER -->
         <activity
-            android:name=".MainActivity"
+            android:name=".MainMenuActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Dead Reckoning Activity -->
+        <activity
+            android:name=".DeadReckoningActivity"
+            android:exported="false" />
+
+        <!-- Sensor Data Activity -->
+        <activity
+            android:name=".SensorDataActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>

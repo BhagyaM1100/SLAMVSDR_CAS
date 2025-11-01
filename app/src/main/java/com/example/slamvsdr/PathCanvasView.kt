@@ -27,30 +27,28 @@ class PathCanvasView @JvmOverloads constructor(
 
     private var currentX = 0f
     private var currentY = 0f
-    private val scaleFactor = 50f // Scale to make movement visible on screen
+    private val scaleFactor = 15f // Reduced scale to keep path more contained
+    private val margin = 50f // Margin from edges
 
     fun updatePosition(x: Double, y: Double) {
-        // Scale factor to make movement visible but contained
-        val scaleFactor = 20f // Reduced from 50f to keep path on screen
+        // Convert coordinates to screen coordinates
+        var screenX = (width / 2) + (x * scaleFactor).toFloat()
+        var screenY = (height / 2) - (y * scaleFactor).toFloat() // Flip Y axis
 
-        // Convert coordinates to screen coordinates (flip Y axis and scale)
-        val screenX = (width / 2) + (x * scaleFactor).toFloat()
-        val screenY = (height / 2) - (y * scaleFactor).toFloat() // Flip Y axis
-
-        // Keep path within bounds (prevent going too far off-screen)
-        val boundedX = screenX.coerceIn(50f, (width - 50).toFloat())
-        val boundedY = screenY.coerceIn(50f, (height - 50).toFloat())
+        // Limit coordinates to stay within bounds with margin
+        screenX = screenX.coerceIn(margin, width - margin)
+        screenY = screenY.coerceIn(margin, height - margin)
 
         if (path.isEmpty) {
             // Start the path at current position
-            path.moveTo(boundedX, boundedY)
+            path.moveTo(screenX, screenY)
         } else {
             // Add line to new position
-            path.lineTo(boundedX, boundedY)
+            path.lineTo(screenX, screenY)
         }
 
-        currentX = boundedX
-        currentY = boundedY
+        currentX = screenX
+        currentY = screenY
 
         // Redraw the view
         invalidate()
@@ -61,8 +59,10 @@ class PathCanvasView @JvmOverloads constructor(
         currentX = (width / 2).toFloat()
         currentY = (height / 2).toFloat()
 
-
-        path.moveTo(currentX, currentY)
+        // Start the path at center
+        if (width > 0 && height > 0) {
+            path.moveTo(currentX, currentY)
+        }
 
         invalidate()
     }
@@ -72,6 +72,9 @@ class PathCanvasView @JvmOverloads constructor(
 
         // Draw grid background
         drawGrid(canvas)
+
+        // Draw bounds border
+        drawBounds(canvas)
 
         // Draw the path
         canvas.drawPath(path, paint)
@@ -98,6 +101,24 @@ class PathCanvasView @JvmOverloads constructor(
         canvas.drawLine(0f, centerY.toFloat(), width.toFloat(), centerY.toFloat(), gridPaint)
     }
 
+    private fun drawBounds(canvas: Canvas) {
+        val boundsPaint = Paint().apply {
+            color = Color.RED
+            style = Paint.Style.STROKE
+            strokeWidth = 2f
+            alpha = 100 // Semi-transparent
+        }
+
+        // Draw bounds rectangle
+        canvas.drawRect(
+            margin,
+            margin,
+            width - margin,
+            height - margin,
+            boundsPaint
+        )
+    }
+
     private fun drawCrosshair(canvas: Canvas) {
         val crossPaint = Paint().apply {
             color = Color.GRAY
@@ -110,5 +131,11 @@ class PathCanvasView @JvmOverloads constructor(
 
         canvas.drawLine(centerX - size, centerY.toFloat(), centerX + size, centerY.toFloat(), crossPaint)
         canvas.drawLine(centerX.toFloat(), centerY - size, centerX.toFloat(), centerY + size, crossPaint)
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        // Reset path when view size changes
+        resetPath()
     }
 }
