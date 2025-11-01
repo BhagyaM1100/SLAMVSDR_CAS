@@ -106,7 +106,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:paddingVertical="8px">
+                    android:paddingVertical="8dp">
 
                     <TextView
                         android:layout_width="0dp"
@@ -302,7 +302,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@android:drawable/ic_menu_compass"
-                        android:tint="#f39c12" />
+                        app:tint="#f39c12" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -417,6 +417,70 @@
                         android:textStyle="bold" />
 
                 </LinearLayout>
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Path Visualization Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@android:color/white">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <!-- Card Header -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingBottom="8dp">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@android:drawable/ic_menu_directions"
+                        app:tint="#2c3e50" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="DEAD RECKONING PATH"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="#2c3e50"
+                        android:layout_marginStart="8dp" />
+
+                </LinearLayout>
+
+                <!-- Drawing Canvas -->
+                <view
+                    android:id="@+id/path_canvas"
+                    class="com.example.slamvsdr.PathCanvasView"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:background="#f8f9fa" />
+
+                <!-- Reset Button -->
+                <Button
+                    android:id="@+id/reset_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Reset Path"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="8dp"
+                    android:backgroundTint="#e74c3c"
+                    android:textColor="@android:color/white" />
 
             </LinearLayout>
 

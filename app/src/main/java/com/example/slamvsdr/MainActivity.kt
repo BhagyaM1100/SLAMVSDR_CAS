@@ -4,18 +4,20 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.widget.Button
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import kotlin.math.sqrt
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
 
+    // Sensor Management
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
     private var gyroscope: Sensor? = null
 
-    // TextViews for sensor data
+    // UI Elements - Sensor Data
     private lateinit var accelXText: TextView
     private lateinit var accelYText: TextView
     private lateinit var accelZText: TextView
@@ -23,11 +25,15 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private lateinit var gyroYText: TextView
     private lateinit var gyroZText: TextView
 
-    // New TextViews for Dead Reckoning
+    // UI Elements - Dead Reckoning
     private lateinit var positionXText: TextView
     private lateinit var positionYText: TextView
     private lateinit var positionZText: TextView
     private lateinit var velocityText: TextView
+
+    // UI Elements - Path Visualization
+    private lateinit var pathCanvas: PathCanvasView
+    private lateinit var resetButton: Button
 
     // Dead Reckoning Variables
     private var lastTimestamp: Long = 0
@@ -42,26 +48,42 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Initialize Sensor TextViews
+        initializeSensorTextViews()
+        initializeDeadReckoningTextViews()
+        initializePathVisualization()
+        initializeSensors()
+
+        lastTimestamp = System.nanoTime()
+    }
+
+    private fun initializeSensorTextViews() {
         accelXText = findViewById(R.id.accel_x_text)
         accelYText = findViewById(R.id.accel_y_text)
         accelZText = findViewById(R.id.accel_z_text)
         gyroXText = findViewById(R.id.gyro_x_text)
         gyroYText = findViewById(R.id.gyro_y_text)
         gyroZText = findViewById(R.id.gyro_z_text)
+    }
 
-        // Initialize Dead Reckoning TextViews (we'll add these to layout next)
+    private fun initializeDeadReckoningTextViews() {
         positionXText = findViewById(R.id.position_x_text)
         positionYText = findViewById(R.id.position_y_text)
         positionZText = findViewById(R.id.position_z_text)
         velocityText = findViewById(R.id.velocity_text)
+    }
 
-        // Initialize Sensor Manager
+    private fun initializePathVisualization() {
+        pathCanvas = findViewById(R.id.path_canvas)
+        resetButton = findViewById(R.id.reset_button)
+        resetButton.setOnClickListener {
+            resetDeadReckoning()
+        }
+    }
+
+    private fun initializeSensors() {
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
-
-        lastTimestamp = System.nanoTime()
     }
 
     override fun onResume() {
@@ -87,44 +109,66 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
             when (event.sensor.type) {
                 Sensor.TYPE_ACCELEROMETER -> {
-                    val ax = event.values[0].toDouble()
-                    val ay = event.values[1].toDouble()
-                    val az = event.values[2].toDouble() - 9.81 // Remove gravity
-
-                    // Add small damping factor to simulate friction (0.98 = 2% reduction per calculation)
-                    val damping = 0.98
-
-// Update velocity using acceleration with damping
-                    velocityX = velocityX * damping + ax * dt
-                    velocityY = velocityY * damping + ay * dt
-                    velocityZ = velocityZ * damping + az * dt
-
-                    // Update position using velocity
-                    positionX += velocityX * dt
-                    positionY += velocityY * dt
-                    positionZ += velocityZ * dt
-
-                    // Calculate total velocity
-                    val totalVelocity = sqrt(velocityX * velocityX + velocityY * velocityY + velocityZ * velocityZ)
-
-                    // Update UI
-                    accelXText.text = "X: ${"%.2f".format(ax)} m/s²"
-                    accelYText.text = "Y: ${"%.2f".format(ay)} m/s²"
-                    accelZText.text = "Z: ${"%.2f".format(az)} m/s²"
-
-                    positionXText.text = "X: ${"%.2f".format(positionX)} m"
-                    positionYText.text = "Y: ${"%.2f".format(positionY)} m"
-                    positionZText.text = "Z: ${"%.2f".format(positionZ)} m"
-                    velocityText.text = "Velocity: ${"%.2f".format(totalVelocity)} m/s"
+                    processAccelerometerData(event.values, dt)
                 }
-
                 Sensor.TYPE_GYROSCOPE -> {
-                    gyroXText.text = "X: ${"%.2f".format(event.values[0])} rad/s"
-                    gyroYText.text = "Y: ${"%.2f".format(event.values[1])} rad/s"
-                    gyroZText.text = "Z: ${"%.2f".format(event.values[2])} rad/s"
+                    processGyroscopeData(event.values)
                 }
             }
         }
+    }
+
+    private fun processAccelerometerData(values: FloatArray, dt: Double) {
+        val ax = values[0].toDouble()
+        val ay = values[1].toDouble()
+        val az = values[2].toDouble() - 9.81 // Remove gravity
+
+        // Update velocity with damping
+        val damping = 0.98
+        velocityX = velocityX * damping + ax * dt
+        velocityY = velocityY * damping + ay * dt
+        velocityZ = velocityZ * damping + az * dt
+
+        // Update position using velocity
+        positionX += velocityX * dt
+        positionY += velocityY * dt
+        positionZ += velocityZ * dt
+
+        // Update UI
+        updateAccelerometerUI(ax, ay, az)
+        updatePositionDisplay()
+        pathCanvas.updatePosition(positionX, positionY)
+    }
+
+    private fun processGyroscopeData(values: FloatArray) {
+        gyroXText.text = "X: ${"%.2f".format(values[0])} rad/s"
+        gyroYText.text = "Y: ${"%.2f".format(values[1])} rad/s"
+        gyroZText.text = "Z: ${"%.2f".format(values[2])} rad/s"
+    }
+
+    private fun updateAccelerometerUI(ax: Double, ay: Double, az: Double) {
+        accelXText.text = "X: ${"%.2f".format(ax)} m/s²"
+        accelYText.text = "Y: ${"%.2f".format(ay)} m/s²"
+        accelZText.text = "Z: ${"%.2f".format(az)} m/s²"
+    }
+
+    private fun updatePositionDisplay() {
+        val totalVelocity = sqrt(velocityX * velocityX + velocityY * velocityY + velocityZ * velocityZ)
+        positionXText.text = "X: ${"%.2f".format(positionX)} m"
+        positionYText.text = "Y: ${"%.2f".format(positionY)} m"
+        positionZText.text = "Z: ${"%.2f".format(positionZ)} m"
+        velocityText.text = "Velocity: ${"%.2f".format(totalVelocity)} m/s"
+    }
+
+    private fun resetDeadReckoning() {
+        velocityX = 0.0
+        velocityY = 0.0
+        velocityZ = 0.0
+        positionX = 0.0
+        positionY = 0.0
+        positionZ = 0.0
+        pathCanvas.resetPath()
+        updatePositionDisplay()
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
