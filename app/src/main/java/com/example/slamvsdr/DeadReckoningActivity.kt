@@ -8,14 +8,26 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import kotlin.math.abs
 import kotlin.math.sqrt
 
 class DeadReckoningActivity : AppCompatActivity(), SensorEventListener {
 
+    // --- Tuning Constants for VIRTUAL PHONE ---
+    companion object {
+        private const val ACCELERATION_THRESHOLD = 0.0
+        private const val VELOCITY_DAMPING = 0.95
+
+        /**
+         * Multiplies the position for the canvas to make movement larger.
+         */
+        private const val VISUAL_SCALE = 50.0 // Try 50.0 or 100.0 if still too slow
+    }
+
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
 
-    // UI Elements - Dead Reckoning
+    // UI Elements
     private lateinit var positionXText: TextView
     private lateinit var positionYText: TextView
     private lateinit var positionZText: TextView
@@ -26,6 +38,9 @@ class DeadReckoningActivity : AppCompatActivity(), SensorEventListener {
     private lateinit var pathCanvas: PathCanvasView
     private lateinit var resetButton: Button
 
+    // ---
+    // --- ⚠️ THESE VARIABLES WERE LIKELY MISSING ⚠️ ---
+    // ---
     // Dead Reckoning Variables
     private var lastTimestamp: Long = 0
     private var velocityX = 0.0
@@ -34,6 +49,15 @@ class DeadReckoningActivity : AppCompatActivity(), SensorEventListener {
     private var positionX = 0.0
     private var positionY = 0.0
     private var positionZ = 0.0
+
+    // Calibration Variables
+    private var currentAccelerometerReading = FloatArray(3) { 0.0f }
+    private var initialGravity = FloatArray(3) { 0.0f }
+    private var isCalibrated = false
+    // ---
+    // --- ⚠️ END OF MISSING VARIABLES ⚠️ ---
+    // ---
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,20 +81,22 @@ class DeadReckoningActivity : AppCompatActivity(), SensorEventListener {
 
         // Reset button
         resetButton.setOnClickListener {
-            resetDeadReckoning()
+            resetAndCalibrate()
         }
 
         // Initialize Sensor Manager
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
-        lastTimestamp = System.nanoTime()
+        // Prompt user to calibrate
+        velocityText.text = "Press RESET to calibrate (in emulator)"
+        resetButton.text = "Calibrate & Reset"
     }
 
     override fun onResume() {
         super.onResume()
         accelerometer?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
         }
     }
 
@@ -82,59 +108,80 @@ class DeadReckoningActivity : AppCompatActivity(), SensorEventListener {
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
             val currentTimestamp = System.nanoTime()
+            if (lastTimestamp == 0L) {
+                lastTimestamp = currentTimestamp
+                return
+            }
             val dt = (currentTimestamp - lastTimestamp) / 1_000_000_000.0
             lastTimestamp = currentTimestamp
 
             when (event.sensor.type) {
                 Sensor.TYPE_ACCELEROMETER -> {
-                    processAccelerometerData(event.values, dt)
+                    currentAccelerometerReading = event.values.clone()
+                    if (isCalibrated) {
+                        processAccelerometerData(currentAccelerometerReading, dt)
+                    }
                 }
             }
         }
     }
 
     private fun processAccelerometerData(values: FloatArray, dt: Double) {
-        val ax = values[0].toDouble()
-        val ay = values[1].toDouble()
-        val az = values[2].toDouble() - 9.81
+        // 1. Calculate linear acceleration
+        val ax = values[0].toDouble() - initialGravity[0].toDouble()
+        val ay = values[1].toDouble() - initialGravity[1].toDouble()
+        val az = values[2].toDouble() - initialGravity[2].toDouble()
 
-        // REDUCED SENSITIVITY - Added damping and lower multipliers
-        val damping = 0.95 // 5% velocity reduction per frame
+        // 2. Apply Threshold (Dead Zone)
+        val filteredAx = if (abs(ax) < ACCELERATION_THRESHOLD) 0.0 else ax
+        val filteredAy = if (abs(ay) < ACCELERATION_THRESHOLD) 0.0 else ay
+        val filteredAz = if (abs(az) < ACCELERATION_THRESHOLD) 0.0 else az
 
-        // Update velocity with damping and lower sensitivity
-        velocityX = velocityX * damping + ax * dt * 0.5  // Reduced from 3.0 to 0.5
-        velocityY = velocityY * damping + ay * dt * 0.5  // Reduced from 3.0 to 0.5
-        velocityZ = velocityZ * damping + az * dt * 0.5  // Reduced from 3.0 to 0.5
+        // 3. Update Velocity with Damping (Friction)
+        velocityX = (velocityX + filteredAx * dt) * VELOCITY_DAMPING
+        velocityY = (velocityY + filteredAy * dt) * VELOCITY_DAMPING
+        velocityZ = (velocityZ + filteredAz * dt) * VELOCITY_DAMPING
 
-        // Update position
+        // 4. Update position (real-world meters)
         positionX += velocityX * dt
         positionY += velocityY * dt
         positionZ += velocityZ * dt
 
-        // Update UI
+        // 5. Update UI (shows the real meters)
         updatePositionDisplay()
 
-        // Update path visualization
-        pathCanvas.updatePosition(positionX, positionY)
+        // 6. Update path visualization with scaling
+        pathCanvas.updatePosition(positionX * VISUAL_SCALE, positionY * VISUAL_SCALE)
     }
 
     private fun updatePositionDisplay() {
         val totalVelocity = sqrt(velocityX * velocityX + velocityY * velocityY + velocityZ * velocityZ)
+        // This UI still shows the TRUE physical position in meters
         positionXText.text = "X: ${"%.2f".format(positionX)} m"
         positionYText.text = "Y: ${"%.2f".format(positionY)} m"
         positionZText.text = "Z: ${"%.2f".format(positionZ)} m"
         velocityText.text = "Velocity: ${"%.2f".format(totalVelocity)} m/s"
     }
 
-    private fun resetDeadReckoning() {
+    private fun resetAndCalibrate() {
+        // Reset all state variables
         velocityX = 0.0
         velocityY = 0.0
         velocityZ = 0.0
         positionX = 0.0
         positionY = 0.0
         positionZ = 0.0
+
+        // CALIBRATE: Set the current reading as the new "zero" (gravity) point
+        initialGravity = currentAccelerometerReading.clone()
+        isCalibrated = true
+
+        // Reset the UI and path
         updatePositionDisplay()
         pathCanvas.resetPath()
+
+        // Reset timestamp
+        lastTimestamp = System.nanoTime()
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
