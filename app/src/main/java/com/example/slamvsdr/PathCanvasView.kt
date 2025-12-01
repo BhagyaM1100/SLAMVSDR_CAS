@@ -12,7 +12,8 @@ class PathCanvasView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     private val path = Path()
-    private val paint = Paint().apply {
+
+    private val pathPaint = Paint().apply {
         color = Color.BLUE
         style = Paint.Style.STROKE
         strokeWidth = 8f
@@ -25,117 +26,118 @@ class PathCanvasView @JvmOverloads constructor(
         isAntiAlias = true
     }
 
+    private val gridPaint = Paint().apply {
+        color = Color.LTGRAY
+        strokeWidth = 1f
+        isAntiAlias = true
+    }
+
+    private val boundsPaint = Paint().apply {
+        color = Color.RED
+        style = Paint.Style.STROKE
+        strokeWidth = 2f
+        alpha = 100
+        isAntiAlias = true
+    }
+
+    private val crossPaint = Paint().apply {
+        color = Color.GRAY
+        strokeWidth = 2f
+        isAntiAlias = true
+    }
+
+    // world coordinate limits you requested
+    private val worldXMin = -7f
+    private val worldXMax = 7f
+    private val worldYMin = -4f
+    private val worldYMax = 4f
+
+    // screen center
+    private var centerX = 0f
+    private var centerY = 0f
+
     private var currentX = 0f
     private var currentY = 0f
-    private val scaleFactor = 15f // Reduced scale to keep path more contained
-    private val margin = 50f // Margin from edges
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldh, oldw)
+        centerX = w / 2f
+        centerY = h / 2f
+        resetPath()
+    }
+
+    /**
+     * Convert world coordinate (-7..7, -4..4) to screen coordinate.
+     */
+    private fun worldToScreenX(x: Double): Float {
+        val normalized = ((x - worldXMin) / (worldXMax - worldXMin)) // 0..1
+        return (normalized * width).toFloat()
+    }
+
+    private fun worldToScreenY(y: Double): Float {
+        val normalized = ((y - worldYMin) / (worldYMax - worldYMin)) // 0..1
+        val screen = (normalized * height).toFloat()
+        return height - screen  // invert y (so +y goes upward)
+    }
 
     fun updatePosition(x: Double, y: Double) {
-        // Convert coordinates to screen coordinates
-        var screenX = (width / 2) + (x * scaleFactor).toFloat()
-        var screenY = (height / 2) - (y * scaleFactor).toFloat() // Flip Y axis
-
-        // Limit coordinates to stay within bounds with margin
-        screenX = screenX.coerceIn(margin, width - margin)
-        screenY = screenY.coerceIn(margin, height - margin)
+        val sx = worldToScreenX(x)
+        val sy = worldToScreenY(y)
 
         if (path.isEmpty) {
-            // Start the path at current position
-            path.moveTo(screenX, screenY)
+            path.moveTo(sx, sy)
         } else {
-            // Add line to new position
-            path.lineTo(screenX, screenY)
+            path.lineTo(sx, sy)
         }
 
-        currentX = screenX
-        currentY = screenY
-
-        // Redraw the view
-        invalidate()
+        currentX = sx
+        currentY = sy
+        postInvalidateOnAnimation()
     }
 
     fun resetPath() {
         path.reset()
-        currentX = (width / 2).toFloat()
-        currentY = (height / 2).toFloat()
 
-        // Start the path at center
-        if (width > 0 && height > 0) {
-            path.moveTo(currentX, currentY)
-        }
+        // start at center of world (0,0)
+        currentX = worldToScreenX(0.0)
+        currentY = worldToScreenY(0.0)
+        path.moveTo(currentX, currentY)
 
-        invalidate()
+        postInvalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        // Draw grid background
         drawGrid(canvas)
-
-        // Draw bounds border
         drawBounds(canvas)
 
-        // Draw the path
-        canvas.drawPath(path, paint)
-
-        // Draw current position as a red dot
+        canvas.drawPath(path, pathPaint)
         canvas.drawCircle(currentX, currentY, 12f, currentPositionPaint)
 
-        // Draw center crosshair
         drawCrosshair(canvas)
     }
 
     private fun drawGrid(canvas: Canvas) {
-        val gridPaint = Paint().apply {
-            color = Color.LTGRAY
-            strokeWidth = 1f
-        }
+        // Y axis (x = 0)
+        val zeroX = worldToScreenX(0.0)
+        canvas.drawLine(zeroX, 0f, zeroX, height.toFloat(), gridPaint)
 
-        val centerX = width / 2
-        val centerY = height / 2
-
-        // Draw vertical line
-        canvas.drawLine(centerX.toFloat(), 0f, centerX.toFloat(), height.toFloat(), gridPaint)
-        // Draw horizontal line
-        canvas.drawLine(0f, centerY.toFloat(), width.toFloat(), centerY.toFloat(), gridPaint)
+        // X axis (y = 0)
+        val zeroY = worldToScreenY(0.0)
+        canvas.drawLine(0f, zeroY, width.toFloat(), zeroY, gridPaint)
     }
 
     private fun drawBounds(canvas: Canvas) {
-        val boundsPaint = Paint().apply {
-            color = Color.RED
-            style = Paint.Style.STROKE
-            strokeWidth = 2f
-            alpha = 100 // Semi-transparent
-        }
-
-        // Draw bounds rectangle
-        canvas.drawRect(
-            margin,
-            margin,
-            width - margin,
-            height - margin,
-            boundsPaint
-        )
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), boundsPaint)
     }
 
     private fun drawCrosshair(canvas: Canvas) {
-        val crossPaint = Paint().apply {
-            color = Color.GRAY
-            strokeWidth = 2f
-        }
-
-        val centerX = width / 2
-        val centerY = height / 2
         val size = 20f
+        val cx = worldToScreenX(0.0)
+        val cy = worldToScreenY(0.0)
 
-        canvas.drawLine(centerX - size, centerY.toFloat(), centerX + size, centerY.toFloat(), crossPaint)
-        canvas.drawLine(centerX.toFloat(), centerY - size, centerX.toFloat(), centerY + size, crossPaint)
-    }
-
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        // Reset path when view size changes
-        resetPath()
+        canvas.drawLine(cx - size, cy, cx + size, cy, crossPaint)
+        canvas.drawLine(cx, cy - size, cx, cy + size, crossPaint)
     }
 }
