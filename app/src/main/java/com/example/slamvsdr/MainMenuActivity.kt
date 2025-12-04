@@ -41,6 +41,20 @@ class MainMenuActivity : AppCompatActivity(), SensorEventListener {
             val intent = Intent(this, DeadReckoningActivity::class.java)
             startActivity(intent)
         }
+
+        // ADD THIS: SLAM vs DR Comparison Button
+        findViewById<Button>(R.id.slam_comparison_btn).setOnClickListener {
+            val intent = Intent(this, DeadReckoningActivity::class.java)
+            // You can pass a flag to indicate it's for SLAM comparison
+            intent.putExtra("mode", "slam_comparison")
+            startActivity(intent)
+        }
+
+        // ADD THIS: Sensor Data Button (if you have one)
+        findViewById<Button>(R.id.sensor_data_btn)?.setOnClickListener {
+            val intent = Intent(this, SensorDataActivity::class.java)
+            startActivity(intent)
+        }
     }
 
     private fun initializeSensorTextViews() {
@@ -87,6 +101,7 @@ class MainMenuActivity : AppCompatActivity(), SensorEventListener {
             }
         }
     }
+
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         // Not needed

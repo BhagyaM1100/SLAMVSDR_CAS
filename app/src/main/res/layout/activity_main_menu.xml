@@ -276,6 +276,8 @@
 
         </androidx.cardview.widget.CardView>
 
+        <!-- ============ ADD THESE THREE BUTTONS ============ -->
+
         <!-- Dead Reckoning Button -->
         <Button
             android:id="@+id/dead_reckoning_btn"
@@ -286,6 +288,32 @@
             android:textStyle="bold"
             android:padding="16dp"
             android:backgroundTint="#e74c3c"
+            android:textColor="@android:color/white"
+            android:layout_marginBottom="8dp" />
+
+        <!-- SLAM vs DR Comparison Button -->
+        <Button
+            android:id="@+id/slam_comparison_btn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SLAM vs DR Comparison"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:padding="16dp"
+            android:backgroundTint="#FF5722"
+            android:textColor="@android:color/white"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Sensor Data Button -->
+        <Button
+            android:id="@+id/sensor_data_btn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sensor Data"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:padding="16dp"
+            android:backgroundTint="#4CAF50"
             android:textColor="@android:color/white"
             android:layout_marginBottom="16dp" />
 

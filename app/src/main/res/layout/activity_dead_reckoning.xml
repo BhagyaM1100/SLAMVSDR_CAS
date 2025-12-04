@@ -1,175 +1,197 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:padding="16dp"
     android:background="#f8f9fa">
-<!-- rajan -->
-    <!-- Header -->
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingBottom="20dp">
+        android:orientation="vertical">
 
-        <ImageView
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@android:drawable/ic_menu_compass"
-            app:tint="#e74c3c" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Dead Reckoning"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="#2c3e50"
-            android:layout_marginStart="12dp" />
-
-    </LinearLayout>
-
-    <!-- Path Visualization -->
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="300dp"
-        android:layout_marginBottom="16dp"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="4dp"
-        app:cardBackgroundColor="@android:color/white">
-
+        <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="8dp">
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingBottom="20dp">
 
-            <!-- Card Header -->
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@android:drawable/ic_menu_compass"
+                app:tint="#e74c3c" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Dead Reckoning"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#2c3e50"
+                android:layout_marginStart="12dp" />
+
+        </LinearLayout>
+
+        <!-- Path Visualization -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@android:color/white">
+
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingBottom="8dp">
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:padding="8dp">
 
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@android:drawable/ic_menu_directions"
-                    app:tint="#2c3e50" />
+                <!-- Card Header -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingBottom="8dp">
 
-                <TextView
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@android:drawable/ic_menu_directions"
+                        app:tint="#2c3e50" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="PATH VISUALIZATION"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="#2c3e50"
+                        android:layout_marginStart="8dp" />
+
+                </LinearLayout>
+
+                <!-- Drawing Canvas -->
+                <view
+                    android:id="@+id/path_canvas"
+                    class="com.example.slamvsdr.PathCanvasView"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:background="#f8f9fa" />
+
+                <!-- Reset Button -->
+                <Button
+                    android:id="@+id/reset_button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="PATH VISUALIZATION"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:textColor="#2c3e50"
-                    android:layout_marginStart="8dp" />
+                    android:text="Reset Path"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="8dp"
+                    android:backgroundTint="#e74c3c"
+                    android:textColor="@android:color/white" />
 
             </LinearLayout>
 
-            <!-- Drawing Canvas -->
-            <view
-                android:id="@+id/path_canvas"
-                class="com.example.slamvsdr.PathCanvasView"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:background="#f8f9fa" />
+        </androidx.cardview.widget.CardView>
 
-            <!-- Reset Button -->
-            <Button
-                android:id="@+id/reset_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Reset Path"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="8dp"
-                android:backgroundTint="#e74c3c"
-                android:textColor="@android:color/white" />
-
-        </LinearLayout>
-
-    </androidx.cardview.widget.CardView>
-
-    <!-- Position Data -->
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="4dp"
-        app:cardBackgroundColor="@android:color/white">
-
-        <LinearLayout
+        <!-- Position Data -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/position_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@android:color/white">
 
-            <TextView
+            <LinearLayout
+                android:id="@+id/position_card_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Position Tracking"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="#2c3e50"
-                android:paddingBottom="8dp" />
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <TextView
-                android:id="@+id/position_x_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="X: 0.00 m"
-                android:textSize="14sp"
-                android:textColor="#2c3e50"
-                android:paddingVertical="2dp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Position Tracking"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#2c3e50"
+                    android:paddingBottom="8dp" />
 
-            <TextView
-                android:id="@+id/position_y_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Y: 0.00 m"
-                android:textSize="14sp"
-                android:textColor="#2c3e50"
-                android:paddingVertical="2dp" />
+                <TextView
+                    android:id="@+id/position_x_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="X: 0.00 m"
+                    android:textSize="14sp"
+                    android:textColor="#2c3e50"
+                    android:paddingVertical="2dp" />
 
-            <TextView
-                android:id="@+id/position_z_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Z: 0.00 m"
-                android:textSize="14sp"
-                android:textColor="#2c3e50"
-                android:paddingVertical="2dp" />
+                <TextView
+                    android:id="@+id/position_y_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Y: 0.00 m"
+                    android:textSize="14sp"
+                    android:textColor="#2c3e50"
+                    android:paddingVertical="2dp" />
 
-            <TextView
-                android:id="@+id/velocity_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Velocity: 0.00 m/s"
-                android:textSize="14sp"
-                android:textColor="#e74c3c"
-                android:textStyle="bold"
-                android:paddingVertical="4dp"
-                android:layout_marginTop="4dp" />
+                <TextView
+                    android:id="@+id/position_z_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Z: 0.00 m"
+                    android:textSize="14sp"
+                    android:textColor="#2c3e50"
+                    android:paddingVertical="2dp" />
+
+                <TextView
+                    android:id="@+id/velocity_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Velocity: 0.00 m/s"
+                    android:textSize="14sp"
+                    android:textColor="#e74c3c"
+                    android:textStyle="bold"
+                    android:paddingVertical="4dp"
+                    android:layout_marginTop="4dp" />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Button Container for SLAM Controls -->
+        <LinearLayout
+            android:id="@+id/button_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp"
+            android:gravity="center">
+
+            <!-- Buttons will be added programmatically -->
 
         </LinearLayout>
 
-    </androidx.cardview.widget.CardView>
+        <!-- Back Button -->
+        <Button
+            android:id="@+id/back_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Back to Main Menu"
+            android:layout_gravity="center_horizontal"
+            android:backgroundTint="#3498db"
+            android:textColor="@android:color/white" />
 
-    <!-- Back Button -->
-    <Button
-        android:id="@+id/back_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Back to Main Menu"
-        android:layout_gravity="center_horizontal"
-        android:backgroundTint="#3498db"
-        android:textColor="@android:color/white" />
+    </LinearLayout>
 
-</LinearLayout>
+</ScrollView>

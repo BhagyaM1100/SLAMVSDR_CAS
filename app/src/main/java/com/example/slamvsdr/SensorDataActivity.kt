@@ -15,7 +15,6 @@ class SensorDataActivity : AppCompatActivity(), SensorEventListener {
     private var accelerometer: Sensor? = null
     private var gyroscope: Sensor? = null
 
-    // TextViews for sensor data
     private lateinit var accelXText: TextView
     private lateinit var accelYText: TextView
     private lateinit var accelZText: TextView
@@ -35,7 +34,7 @@ class SensorDataActivity : AppCompatActivity(), SensorEventListener {
         gyroYText = findViewById(R.id.sensor_gyro_y_text)
         gyroZText = findViewById(R.id.sensor_gyro_z_text)
 
-        // Initialize Sensor Manager
+        // Initialize sensor manager
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
@@ -54,7 +53,6 @@ class SensorDataActivity : AppCompatActivity(), SensorEventListener {
 
     override fun onPause() {
         super.onPause()
-        // Unregister sensor listeners to save battery
         sensorManager.unregisterListener(this)
     }
 
@@ -62,27 +60,25 @@ class SensorDataActivity : AppCompatActivity(), SensorEventListener {
         event?.let {
             when (event.sensor.type) {
                 Sensor.TYPE_ACCELEROMETER -> {
-                    // Update accelerometer data
-                    accelXText.text = "X: ${"%.2f".format(event.values[0])} m/s²"
-                    accelYText.text = "Y: ${"%.2f".format(event.values[1])} m/s²"
-                    accelZText.text = "Z: ${"%.2f".format(event.values[2])} m/s²"
+                    accelXText.text = "X-Axis: ${"%.2f".format(event.values[0])} m/s²"
+                    accelYText.text = "Y-Axis: ${"%.2f".format(event.values[1])} m/s²"
+                    accelZText.text = "Z-Axis: ${"%.2f".format(event.values[2])} m/s²"
                 }
+
                 Sensor.TYPE_GYROSCOPE -> {
-                    // Update gyroscope data
-                    gyroXText.text = "X: ${"%.2f".format(event.values[0])} rad/s"
-                    gyroYText.text = "Y: ${"%.2f".format(event.values[1])} rad/s"
-                    gyroZText.text = "Z: ${"%.2f".format(event.values[2])} rad/s"
+                    gyroXText.text = "X-Rotation: ${"%.2f".format(event.values[0])} rad/s"
+                    gyroYText.text = "Y-Rotation: ${"%.2f".format(event.values[1])} rad/s"
+                    gyroZText.text = "Z-Rotation: ${"%.2f".format(event.values[2])} rad/s"
                 }
             }
         }
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        // Not needed for basic implementation
+        // Not needed
     }
 
-    // Handle back button click
     fun onBackButtonClick(view: View) {
-        finish() // Go back to main menu
+        finish()
     }
 }
