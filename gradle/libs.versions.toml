@@ -1,26 +1,42 @@
 [versions]
-agp = "8.13.0"
-kotlin = "2.0.21"
-coreKtx = "1.10.1"
-junit = "4.13.2"
-junitVersion = "1.1.5"
-espressoCore = "3.5.1"
-appcompat = "1.6.1"
-material = "1.10.0"
-activity = "1.8.0"
-constraintlayout = "2.1.4"
+agp = "8.2.2"
+kotlin = "1.9.22"
+compileSdk = "34"
+minSdk = "24"
+targetSdk = "34"
 
 [libraries]
-androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-junit = { group = "junit", name = "junit", version.ref = "junit" }
-androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
-androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
-androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
-androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+androidx-core-ktx = { module = "androidx.core:core-ktx", version = "1.12.0" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version = "1.6.1" }
+material = { module = "com.google.android.material:material", version = "1.11.0" }
+androidx-activity = { module = "androidx.activity:activity-ktx", version = "1.8.2" }
+androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version = "2.1.4" }
+junit = { module = "junit:junit", version = "4.13.2" }
+androidx-junit = { module = "androidx.test.ext:junit", version = "1.1.5" }
+androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version = "3.5.1" }
+
+# Camera
+camera-core = { module = "androidx.camera:camera-core", version = "1.3.0" }
+camera-camera2 = { module = "androidx.camera:camera-camera2", version = "1.3.0" }
+camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version = "1.3.0" }
+camera-view = { module = "androidx.camera:camera-view", version = "1.3.0" }
+
+# OpenCV
+opencv = { module = "com.quickbirdstudios:opencv", version = "4.5.3.0" }
+
+# Utilities
+gson = { module = "com.google.code.gson:gson", version = "2.10.1" }
+commons-math3 = { module = "org.apache.commons:commons-math3", version = "3.6.1" }
+ejml = { module = "org.ejml:ejml-all", version = "0.43" }
+
+# Coroutines
+coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version = "1.7.3" }
+coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.7.3" }
+
+# Lifecycle
+lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version = "2.7.0" }
+lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version = "2.7.0" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-

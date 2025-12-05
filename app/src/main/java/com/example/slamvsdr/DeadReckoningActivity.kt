@@ -1,5 +1,6 @@
 package com.example.slamvsdr
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -131,6 +132,7 @@ class DeadReckoningActivity : AppCompatActivity(), SensorEventListener, SensorCo
         }
     }
 
+    @SuppressLint("WrongViewCast")
     private fun addSLAMUIElements() {
         // Find position card
         val positionCardContainer = findViewById<LinearLayout>(R.id.position_card_container)

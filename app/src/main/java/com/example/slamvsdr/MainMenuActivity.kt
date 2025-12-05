@@ -16,7 +16,7 @@ class MainMenuActivity : AppCompatActivity(), SensorEventListener {
     private var accelerometer: Sensor? = null
     private var gyroscope: Sensor? = null
 
-    // TextViews - USING CORRECT IDs FROM OUR NEW LAYOUT
+    // TextViews
     private lateinit var accelXText: TextView
     private lateinit var accelYText: TextView
     private lateinit var accelZText: TextView
@@ -28,7 +28,7 @@ class MainMenuActivity : AppCompatActivity(), SensorEventListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main_menu)
 
-        // Initialize TextViews WITH CORRECT IDs
+        // Initialize TextViews
         initializeSensorTextViews()
 
         // Initialize Sensor Manager
@@ -42,16 +42,21 @@ class MainMenuActivity : AppCompatActivity(), SensorEventListener {
             startActivity(intent)
         }
 
-        // ADD THIS: SLAM vs DR Comparison Button
+        // Camera SLAM Button
+        findViewById<Button>(R.id.camera_slam_btn).setOnClickListener {
+            val intent = Intent(this, CameraSlamActivity::class.java)
+            startActivity(intent)
+        }
+
+        // SLAM vs DR Comparison Button
         findViewById<Button>(R.id.slam_comparison_btn).setOnClickListener {
             val intent = Intent(this, DeadReckoningActivity::class.java)
-            // You can pass a flag to indicate it's for SLAM comparison
             intent.putExtra("mode", "slam_comparison")
             startActivity(intent)
         }
 
-        // ADD THIS: Sensor Data Button (if you have one)
-        findViewById<Button>(R.id.sensor_data_btn)?.setOnClickListener {
+        // Sensor Data Button
+        findViewById<Button>(R.id.sensor_data_btn).setOnClickListener {
             val intent = Intent(this, SensorDataActivity::class.java)
             startActivity(intent)
         }
@@ -69,12 +74,12 @@ class MainMenuActivity : AppCompatActivity(), SensorEventListener {
 
     override fun onResume() {
         super.onResume()
-        // Register sensor listeners - USE NORMAL UPDATE RATE (safer)
+        // Register sensor listeners
         accelerometer?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL) // ← CHANGED
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
         }
         gyroscope?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL) // ← CHANGED
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
         }
     }
 
@@ -88,20 +93,19 @@ class MainMenuActivity : AppCompatActivity(), SensorEventListener {
             when (event.sensor.type) {
                 Sensor.TYPE_ACCELEROMETER -> {
                     // Update accelerometer data
-                    accelXText.text = "%.2f".format(event.values[0])
-                    accelYText.text = "%.2f".format(event.values[1])
-                    accelZText.text = "%.2f".format(event.values[2])
+                    accelXText.text = "Accel X: ${"%.2f".format(event.values[0])}"
+                    accelYText.text = "Accel Y: ${"%.2f".format(event.values[1])}"
+                    accelZText.text = "Accel Z: ${"%.2f".format(event.values[2])}"
                 }
                 Sensor.TYPE_GYROSCOPE -> {
                     // Update gyroscope data
-                    gyroXText.text = "%.2f".format(event.values[0])
-                    gyroYText.text = "%.2f".format(event.values[1])
-                    gyroZText.text = "%.2f".format(event.values[2])
+                    gyroXText.text = "Gyro X: ${"%.2f".format(event.values[0])}"
+                    gyroYText.text = "Gyro Y: ${"%.2f".format(event.values[1])}"
+                    gyroZText.text = "Gyro Z: ${"%.2f".format(event.values[2])}"
                 }
             }
         }
     }
-
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         // Not needed

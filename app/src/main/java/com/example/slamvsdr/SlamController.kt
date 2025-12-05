@@ -403,6 +403,14 @@ class SlamController {
         return normalized
     }
 
+    // Add this method to get landmarks
+    fun getLandmarks(): List<Pair<Double, Double>> {
+        return landmarks.map { Pair(it.x, it.y) }
+    }
+
+    // Add this method to get landmark count
+    fun getLandmarkCount(): Int = landmarks.size
+
     fun reset() {
         stateVector.clear()
         covarianceMatrix.clear()
@@ -426,6 +434,5 @@ class SlamController {
         Log.d("EKF-SLAM", "Reset to initial state")
     }
 
-    fun getLandmarkCount(): Int = landmarks.size
     fun getStateSize(): Int = currentStateSize
 }
