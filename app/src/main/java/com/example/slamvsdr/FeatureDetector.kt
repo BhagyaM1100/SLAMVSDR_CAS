@@ -17,7 +17,7 @@ class FeatureDetector {
     // Position tracking state
     private var positionX = 0f
     private var positionY = 0f
-    private var positionZ = 2f
+    private var positionZ = 2f        // keep roughly constant for stability
     private var velocityX = 0f
     private var velocityY = 0f
 
@@ -26,55 +26,66 @@ class FeatureDetector {
     private var showMotionArrow = true
     private var showFeatureHistory = true
 
+    // Tuning constants (aggressive smoothing & robustness)
+    private val maxFeaturesToKeep = 180
+    private val maxMatchesToUse = 80
+    private val maxMatchDistancePx = 18f       // tighter
+    private val minMatchesForMotion = 15
+    private val maxFlowPerFramePx = 10f        // clamp optical flow magnitude
+    private val minFlowForMotionPx = 0.5f      // ignore tiny noise
+    private val frameTime = 0.033f             // ~30 FPS assumed
+
     fun detectFeatures(imageProxy: ImageProxy): FeatureDetectionResult {
         val startTime = System.currentTimeMillis()
 
         return try {
-            // Get Y channel (luminance) from YUV image
             val yBuffer = imageProxy.planes[0].buffer
             val width = imageProxy.width
             val height = imageProxy.height
 
-            // Copy Y data
             val yData = ByteArray(yBuffer.remaining())
             yBuffer.get(yData)
             yBuffer.rewind()
 
-            // Detect features - MORE AGGRESSIVE DETECTION
-            val features = detectAggressiveFeatures(yData, width, height)
+            // 1) Detect candidate features
+            var features = detectAggressiveFeatures(yData, width, height)
 
-            // Store feature history for visualization
+            // 2) Keep only strongest K
+            features = features
+                .sortedByDescending { it.score }
+                .take(maxFeaturesToKeep)
+
+            // Store feature history for overlay
             featureHistory.add(0, features)
             if (featureHistory.size > maxHistorySize) {
                 featureHistory.removeAt(maxHistorySize)
             }
 
-            // Match features
-            val matches = if (previousFeatures.isNotEmpty() && features.isNotEmpty()) {
-                matchFeaturesBetter(features, previousFeatures)
-            } else {
-                emptyList()
+            // 3) Match to previous frame
+            var matches: List<Pair<FeaturePoint, FeaturePoint>> = emptyList()
+            if (previousFeatures.isNotEmpty() && features.isNotEmpty()) {
+                matches = matchFeaturesBetter(features, previousFeatures)
             }
 
-            // Estimate position from feature flow
-            val positionUpdate = if (matches.size >= 3) {
-                estimatePositionFromFeatureFlow(matches, width, height)
-            } else {
-                Triple(positionX, positionY, positionZ)
+            // 4) Robust motion estimation + strong smoothing
+            if (matches.size >= minMatchesForMotion) {
+                val filteredMatches = filterOutlierMatches(matches)
+                if (filteredMatches.size >= minMatchesForMotion) {
+                    val posUpdate = estimatePositionFromFeatureFlow(filteredMatches, width, height)
+                    positionX = posUpdate.first
+                    positionY = posUpdate.second
+                    positionZ = posUpdate.third
+                    matches = filteredMatches
+                }
             }
-
-            // Update position
-            positionX = positionUpdate.first
-            positionY = positionUpdate.second
-            positionZ = positionUpdate.third
 
             previousFeatures = features
 
-            // Debug log
-            if (features.size > 0) {
-                Log.d("FeatureTracker",
-                    "Features: ${features.size}, Matches: ${matches.size}, " +
-                            "Pos: (${"%.2f".format(positionX)}, ${"%.2f".format(positionY)})"
+            if (features.isNotEmpty()) {
+                Log.d(
+                    "FeatureTracker",
+                    "Features=${features.size}, Matches=${matches.size}, " +
+                            "Pos=(${String.format("%.2f", positionX)}, ${String.format("%.2f", positionY)}, Z=${String.format("%.2f", positionZ)})"
                 )
             }
 
@@ -94,40 +105,28 @@ class FeatureDetector {
         }
     }
 
+    // ---------- FEATURE DETECTION ----------
+
     private fun detectAggressiveFeatures(yData: ByteArray, width: Int, height: Int): List<FeaturePoint> {
         val features = mutableListOf<FeaturePoint>()
 
-        // Use DENSE grid for maximum features
-        val gridSize = 12  // More dense grid
+        // Slightly coarser grid for more stable features
+        val gridSize = 16
+        val cornerThreshold = 28
 
         for (y in gridSize until height - gridSize step gridSize) {
             for (x in gridSize until width - gridSize step gridSize) {
-                // Use faster corner detection
                 val score = calculateFastCornerScore(yData, x, y, width, height)
-
-                // VERY LOW THRESHOLD - detect almost everything
-                if (score > 20) {
+                if (score > cornerThreshold) {
                     features.add(FeaturePoint(x.toFloat(), y.toFloat(), score.toFloat()))
-
-                    // Add extra points around for dense coverage
-                    for (dy in -1..1 step 2) {
-                        for (dx in -1..1 step 2) {
-                            if (x + dx * 2 in 0 until width && y + dy * 2 in 0 until height) {
-                                val subScore = calculateFastCornerScore(yData, x + dx * 2, y + dy * 2, width, height)
-                                if (subScore > 15) {
-                                    features.add(FeaturePoint((x + dx * 2).toFloat(), (y + dy * 2).toFloat(), subScore.toFloat()))
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }
 
-        // Also detect along strong edges
+        // Limited border features (optional but can help)
         detectEdgeFeatures(yData, width, height, features)
 
-        Log.d("FeatureDetector", "Detected ${features.size} features")
+        Log.d("FeatureDetector", "Detected ${features.size} raw features")
         return features
     }
 
@@ -136,55 +135,45 @@ class FeatureDetector {
 
         val center = getLuminance(yData, x, y, width)
 
-        // Simple gradient in 4 directions
         val right = getLuminance(yData, x + 1, y, width)
         val left = getLuminance(yData, x - 1, y, width)
         val bottom = getLuminance(yData, x, y + 1, width)
         val top = getLuminance(yData, x, y - 1, width)
 
-        // Check for corners (high gradient in orthogonal directions)
+        val diag1 = getLuminance(yData, x + 1, y + 1, width)
+        val diag2 = getLuminance(yData, x - 1, y + 1, width)
+
         val horizontalDiff = abs(center - right) + abs(center - left)
         val verticalDiff = abs(center - bottom) + abs(center - top)
+        val diagonalDiff = abs(center - diag1) + abs(center - diag2)
 
-        // Also check diagonals
-        val diag1 = abs(center - getLuminance(yData, x + 1, y + 1, width))
-        val diag2 = abs(center - getLuminance(yData, x - 1, y + 1, width))
-
-        return (horizontalDiff + verticalDiff + diag1 + diag2) / 2
+        return (horizontalDiff + verticalDiff + diagonalDiff) / 2
     }
 
-    private fun detectEdgeFeatures(yData: ByteArray, width: Int, height: Int, features: MutableList<FeaturePoint>) {
-        // Detect along image borders (where texture often exists)
-        val borderMargin = 8
+    private fun detectEdgeFeatures(
+        yData: ByteArray,
+        width: Int,
+        height: Int,
+        features: MutableList<FeaturePoint>
+    ) {
+        val borderMargin = 10
 
         // Horizontal borders
-        for (x in borderMargin until width - borderMargin step 10) {
-            // Top border
+        for (x in borderMargin until width - borderMargin step 18) {
             val scoreTop = calculateFastCornerScore(yData, x, borderMargin, width, height)
-            if (scoreTop > 25) {
-                features.add(FeaturePoint(x.toFloat(), borderMargin.toFloat(), scoreTop.toFloat()))
-            }
+            if (scoreTop > 32) features.add(FeaturePoint(x.toFloat(), borderMargin.toFloat(), scoreTop.toFloat()))
 
-            // Bottom border
             val scoreBottom = calculateFastCornerScore(yData, x, height - borderMargin, width, height)
-            if (scoreBottom > 25) {
-                features.add(FeaturePoint(x.toFloat(), (height - borderMargin).toFloat(), scoreBottom.toFloat()))
-            }
+            if (scoreBottom > 32) features.add(FeaturePoint(x.toFloat(), (height - borderMargin).toFloat(), scoreBottom.toFloat()))
         }
 
         // Vertical borders
-        for (y in borderMargin until height - borderMargin step 10) {
-            // Left border
+        for (y in borderMargin until height - borderMargin step 18) {
             val scoreLeft = calculateFastCornerScore(yData, borderMargin, y, width, height)
-            if (scoreLeft > 25) {
-                features.add(FeaturePoint(borderMargin.toFloat(), y.toFloat(), scoreLeft.toFloat()))
-            }
+            if (scoreLeft > 32) features.add(FeaturePoint(borderMargin.toFloat(), y.toFloat(), scoreLeft.toFloat()))
 
-            // Right border
             val scoreRight = calculateFastCornerScore(yData, width - borderMargin, y, width, height)
-            if (scoreRight > 25) {
-                features.add(FeaturePoint((width - borderMargin).toFloat(), y.toFloat(), scoreRight.toFloat()))
-            }
+            if (scoreRight > 32) features.add(FeaturePoint((width - borderMargin).toFloat(), y.toFloat(), scoreRight.toFloat()))
         }
     }
 
@@ -197,77 +186,151 @@ class FeatureDetector {
         }
     }
 
+    // ---------- MATCHING + OUTLIER FILTER ----------
+
     private fun matchFeaturesBetter(
         current: List<FeaturePoint>,
         previous: List<FeaturePoint>
     ): List<Pair<FeaturePoint, FeaturePoint>> {
         val matches = mutableListOf<Pair<FeaturePoint, FeaturePoint>>()
-        val maxDistance = 20f  // Tighter matching
+        val maxDist = maxMatchDistancePx
 
-        // Use kd-tree like approach (simple nearest neighbor)
-        for (curr in current.take(60)) {
+        val currentStrong = current.sortedByDescending { it.score }.take(maxMatchesToUse)
+        val previousStrong = previous.sortedByDescending { it.score }.take(maxMatchesToUse)
+
+        for (curr in currentStrong) {
             var bestMatch: FeaturePoint? = null
-            var bestDistance = Float.MAX_VALUE
+            var bestDistSq = Float.MAX_VALUE
 
-            for (prev in previous.take(60)) {
+            for (prev in previousStrong) {
                 val dx = curr.x - prev.x
                 val dy = curr.y - prev.y
-                val distance = sqrt(dx * dx + dy * dy)
-
-                if (distance < maxDistance && distance < bestDistance) {
-                    bestDistance = distance
+                val distSq = dx * dx + dy * dy
+                if (distSq < bestDistSq && distSq <= maxDist * maxDist) {
+                    bestDistSq = distSq
                     bestMatch = prev
                 }
             }
 
             if (bestMatch != null) {
-                matches.add(Pair(curr, bestMatch))
+                matches.add(curr to bestMatch)
             }
         }
 
+        Log.d("FeatureDetector", "Raw matches: ${matches.size}")
         return matches
     }
+
+    private fun filterOutlierMatches(
+        matches: List<Pair<FeaturePoint, FeaturePoint>>
+    ): List<Pair<FeaturePoint, FeaturePoint>> {
+        if (matches.size < 3) return matches
+
+        val dxs = matches.map { (c, p) -> c.x - p.x }
+        val dys = matches.map { (c, p) -> c.y - p.y }
+
+        val medianDx = dxs.median()
+        val medianDy = dys.median()
+
+        // Angular + magnitude-based filtering
+        val mags = matches.map { (c, p) ->
+            val dx = c.x - p.x
+            val dy = c.y - p.y
+            hypot(dx, dy)
+        }
+
+        val medianMag = mags.median().coerceAtLeast(1e-3f)
+
+        val filtered = matches.filterIndexed { i, (c, p) ->
+            val dx = c.x - p.x
+            val dy = c.y - p.y
+            val mag = mags[i]
+
+            // Reject insane magnitudes
+            if (mag > maxFlowPerFramePx * 3f) return@filterIndexed false
+
+            // Reject points very far from median magnitude
+            val magDev = abs(mag - medianMag)
+            if (magDev > maxFlowPerFramePx) return@filterIndexed false
+
+            true
+        }
+
+        Log.d("FeatureDetector", "Filtered matches: ${filtered.size} (from ${matches.size})")
+        return filtered
+    }
+
+    private fun List<Float>.median(): Float {
+        if (isEmpty()) return 0f
+        val sorted = this.sorted()
+        val mid = size / 2
+        return if (size % 2 == 0) {
+            (sorted[mid - 1] + sorted[mid]) / 2f
+        } else {
+            sorted[mid]
+        }
+    }
+
+    // ---------- MOTION ESTIMATION ----------
 
     private fun estimatePositionFromFeatureFlow(
         matches: List<Pair<FeaturePoint, FeaturePoint>>,
         width: Int,
         height: Int
     ): Triple<Float, Float, Float> {
-        // Calculate optical flow
-        var totalDx = 0f
-        var totalDy = 0f
+        if (matches.isEmpty()) return Triple(positionX, positionY, positionZ)
 
-        for ((current, previous) in matches) {
-            totalDx += (current.x - previous.x)
-            totalDy += (current.y - previous.y)
+        val dxList = matches.map { (c, p) -> c.x - p.x }
+        val dyList = matches.map { (c, p) -> c.y - p.y }
+
+        var flowDx = dxList.median()
+        var flowDy = dyList.median()
+
+        var flowMag = hypot(flowDx, flowDy)
+
+        // Ignore tiny flows (noise)
+        if (flowMag < minFlowForMotionPx) {
+            flowDx = 0f
+            flowDy = 0f
+            flowMag = 0f
         }
 
-        val avgDx = totalDx / matches.size
-        val avgDy = totalDy / matches.size
+        // Clamp max per-frame flow
+        if (flowMag > maxFlowPerFramePx) {
+            val scale = maxFlowPerFramePx / flowMag
+            flowDx *= scale
+            flowDy *= scale
+            flowMag = maxFlowPerFramePx
+        }
 
-        // Convert to real-world motion
         val focalLength = 500f
-        val frameTime = 0.033f
 
-        val moveX = (avgDx * positionZ) / focalLength
-        val moveY = (avgDy * positionZ) / focalLength
+        val moveX = (flowDx * positionZ) / focalLength
+        val moveY = (flowDy * positionZ) / focalLength
 
-        // Smooth velocity
-        velocityX = 0.7f * velocityX + 0.3f * moveX / frameTime
-        velocityY = 0.7f * velocityY + 0.3f * moveY / frameTime
+        // Strong low-pass filtering on velocity
+        val alpha = 0.9f     // closer to 1 => slower changes, smoother
+        val targetVx = moveX / frameTime
+        val targetVy = moveY / frameTime
 
-        // Update position
+        velocityX = (1f - alpha) * velocityX + alpha * targetVx
+        velocityY = (1f - alpha) * velocityY + alpha * targetVy
+
+        // Clamp velocity to prevent explosions
+        velocityX = velocityX.coerceIn(-1.5f, 1.5f)
+        velocityY = velocityY.coerceIn(-1.5f, 1.5f)
+
         positionX += velocityX * frameTime
         positionY += velocityY * frameTime
 
-        // Simple depth estimation
-        val avgFlow = sqrt(avgDx * avgDx + avgDy * avgDy)
-        val flowChange = avgFlow - 8f
-        positionZ += flowChange * 0.005f
-        positionZ = positionZ.coerceIn(1.0f, 4.0f)
+        // Keep Z almost constant (avoid noisy depth)
+        val targetZ = 2.0f
+        positionZ = 0.95f * positionZ + 0.05f * targetZ
 
         return Triple(positionX, positionY, positionZ)
     }
+
+    // ---------- VISUALIZATION ----------
 
     fun createFeatureOverlay(
         width: Int,
@@ -279,81 +342,64 @@ class FeatureDetector {
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.TRANSPARENT)
 
-        // Draw motion direction with LARGER, MORE VISIBLE arrow
         if (showMotionArrow && matches.isNotEmpty()) {
             val centerX = width / 2f
             val centerY = height / 2f
 
-            // Calculate average motion
-            var avgMotionX = 0f
-            var avgMotionY = 0f
-            for ((current, previous) in matches.take(20)) {
-                avgMotionX += (current.x - previous.x)
-                avgMotionY += (current.y - previous.y)
-            }
-            avgMotionX /= max(matches.size, 1)
-            avgMotionY /= max(matches.size, 1)
+            val dxList = matches.map { (c, p) -> c.x - p.x }
+            val dyList = matches.map { (c, p) -> c.y - p.y }
+            val avgDx = dxList.median()
+            val avgDy = dyList.median()
 
-            // Draw LARGE motion arrow
             val motionPaint = Paint().apply {
                 color = Color.YELLOW
                 style = Paint.Style.STROKE
-                strokeWidth = 4f  // Thicker
+                strokeWidth = 4f
                 isAntiAlias = true
-                alpha = 230  // More opaque
+                alpha = 230
             }
 
-            val arrowLength = 60f  // Longer arrow
-            val arrowEndX = centerX + avgMotionX * 5f  // More amplification
-            val arrowEndY = centerY + avgMotionY * 5f
+            val arrowEndX = centerX + avgDx * 5f
+            val arrowEndY = centerY + avgDy * 5f
 
-            // Draw arrow shaft
             canvas.drawLine(centerX, centerY, arrowEndX, arrowEndY, motionPaint)
-
-            // Draw LARGE arrow head
             drawLargeArrow(canvas, centerX, centerY, arrowEndX, arrowEndY, motionPaint)
 
-            // Draw motion magnitude text
             val textPaint = Paint().apply {
                 color = Color.WHITE
-                textSize = 28f  // Larger text
+                textSize = 28f
                 isAntiAlias = true
                 alpha = 220
             }
 
-            val motionMag = sqrt(avgMotionX * avgMotionX + avgMotionY * avgMotionY)
+            val motionMag = hypot(avgDx, avgDy)
             val motionText = "Motion: ${"%.1f".format(motionMag)} px"
             canvas.drawText(motionText, 30f, 50f, textPaint)
         }
 
-        // Draw feature tracks (blue lines)
         if (showFeatureTracks) {
             val trackPaint = Paint().apply {
-                color = Color.argb(200, 0, 150, 255)  // Brighter blue
+                color = Color.argb(200, 0, 150, 255)
                 style = Paint.Style.STROKE
-                strokeWidth = 1.8f  // Slightly thicker
+                strokeWidth = 1.8f
                 isAntiAlias = true
             }
 
-            for ((current, previous) in matches.take(40)) {
+            for ((current, previous) in matches.take(60)) {
                 canvas.drawLine(previous.x, previous.y, current.x, current.y, trackPaint)
             }
         }
 
-        // Draw BRIGHT GREEN current features
         val featurePaint = Paint().apply {
-            color = Color.argb(230, 0, 255, 0)  // Bright green
+            color = Color.argb(230, 0, 255, 0)
             style = Paint.Style.FILL
             isAntiAlias = true
         }
 
-        // Draw ALL current features (not just first 100)
         for (feature in features) {
-            // Size based on feature score
             val radius = 3 + (feature.score / 80f).toInt().coerceIn(2, 5)
             canvas.drawCircle(feature.x, feature.y, radius.toFloat(), featurePaint)
 
-            // Add glow effect for important features
             if (feature.score > 100) {
                 val glowPaint = Paint().apply {
                     color = Color.argb(80, 0, 255, 0)
@@ -364,15 +410,13 @@ class FeatureDetector {
             }
         }
 
-        // Draw feature history (faint older features)
         if (showFeatureHistory && featureHistory.size > 1) {
             val historyPaint = Paint().apply {
-                color = Color.argb(80, 255, 255, 0)  // Faint yellow
+                color = Color.argb(80, 255, 255, 0)
                 style = Paint.Style.FILL
                 isAntiAlias = true
             }
 
-            // Draw features from previous frames
             for (i in 1 until min(featureHistory.size, 3)) {
                 for (oldFeature in featureHistory[i].take(30)) {
                     canvas.drawCircle(oldFeature.x, oldFeature.y, 2f, historyPaint)
@@ -380,7 +424,6 @@ class FeatureDetector {
             }
         }
 
-        // Draw info overlay
         drawInfoOverlay(canvas, width, height, features.size, matches.size)
 
         return bitmap
@@ -388,9 +431,9 @@ class FeatureDetector {
 
     private fun drawLargeArrow(canvas: Canvas, x1: Float, y1: Float, x2: Float, y2: Float, paint: Paint) {
         val angle = atan2(y2 - y1, x2 - x1)
-        val arrowLength = 20f  // Larger arrow head
+        val arrowLength = 20f
 
-        val x3 = x2 - arrowLength * cos(angle + PI.toFloat() / 5)  // Wider angle
+        val x3 = x2 - arrowLength * cos(angle + PI.toFloat() / 5)
         val y3 = y2 - arrowLength * sin(angle + PI.toFloat() / 5)
         val x4 = x2 - arrowLength * cos(angle - PI.toFloat() / 5)
         val y4 = y2 - arrowLength * sin(angle - PI.toFloat() / 5)
@@ -398,10 +441,9 @@ class FeatureDetector {
         canvas.drawLine(x2, y2, x3, y3, paint)
         canvas.drawLine(x2, y2, x4, y4, paint)
 
-        // Draw filled arrow head for better visibility
         val fillPaint = Paint(paint).apply {
             style = Paint.Style.FILL
-            color = Color.argb(180, 255, 255, 0)  // Semi-transparent yellow fill
+            color = Color.argb(180, 255, 255, 0)
         }
 
         val path = android.graphics.Path()
@@ -423,12 +465,10 @@ class FeatureDetector {
         val stats = "Features: $featureCount  |  Matches: $matchCount"
         canvas.drawText(stats, 30f, height - 40f, infoPaint)
 
-        // Draw position indicator
-        val posText = "Pos: (${"%.2f".format(positionX)}, ${"%.2f".format(positionY)})"
+        val posText = "Pos: (${String.format("%.2f", positionX)}, ${String.format("%.2f", positionY)})"
         canvas.drawText(posText, 30f, height - 70f, infoPaint)
     }
 
-    // Toggle visualization options
     fun toggleFeatureTracks(show: Boolean) { showFeatureTracks = show }
     fun toggleMotionArrow(show: Boolean) { showMotionArrow = show }
     fun toggleFeatureHistory(show: Boolean) { showFeatureHistory = show }
