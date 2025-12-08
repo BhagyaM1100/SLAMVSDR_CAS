@@ -2,90 +2,68 @@ package com.example.slamvsdr
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
 import android.util.AttributeSet
 import android.view.View
 
 class PathCanvasView @JvmOverloads constructor(
-    context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    private var plotController: PlotController? = null
-    private var fusionController: FusionController? = null
-
-    fun setPlotController(controller: PlotController) {
-        plotController = controller
+    private val pathPaint = Paint().apply {
+        color = Color.BLUE
+        style = Paint.Style.STROKE
+        strokeWidth = 5f
+        isAntiAlias = true
     }
 
-    fun setFusionController(controller: FusionController) {
-        fusionController = controller
+    private val positionPaint = Paint().apply {
+        color = Color.RED
+        style = Paint.Style.FILL
+        isAntiAlias = true
+    }
+
+    private val path = Path()
+    private var centerX = 0f
+    private var centerY = 0f
+    private var currentX = 0f
+    private var currentY = 0f
+    private var isInitialized = false
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        centerX = w / 2f
+        centerY = h / 2f
+        if (!isInitialized) {
+            path.moveTo(centerX, centerY)
+            isInitialized = true
+        }
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-
-        // Draw coordinate grid
-        drawGrid(canvas)
-
-        // Draw paths if controllers are set
-        fusionController?.let { fusion ->
-            plotController?.draw(canvas, fusion.updateIMU(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
-        }
+        canvas.drawPath(path, pathPaint)
+        canvas.drawCircle(centerX + currentX, centerY + currentY, 15f, positionPaint)
     }
 
-    private fun drawGrid(canvas: Canvas) {
-        val width = width.toFloat()
-        val height = height.toFloat()
-        val centerX = width / 2
-        val centerY = height / 2
-        val gridSize = 50f // pixels between grid lines
+    fun updatePosition(x: Double, y: Double) {
+        val newX = (centerX + x.toFloat())
+        val newY = (centerY - y.toFloat())
+        path.lineTo(newX, newY)
+        currentX = x.toFloat()
+        currentY = -y.toFloat()
+        invalidate()
+    }
 
-        // Draw grid lines
-        val gridPaint = android.graphics.Paint().apply {
-            color = android.graphics.Color.LTGRAY
-            strokeWidth = 1f
-        }
-
-        // Vertical lines
-        var x = centerX % gridSize
-        while (x < width) {
-            canvas.drawLine(x, 0f, x, height, gridPaint)
-            x += gridSize
-        }
-
-        // Horizontal lines
-        var y = centerY % gridSize
-        while (y < height) {
-            canvas.drawLine(0f, y, width, y, gridPaint)
-            y += gridSize
-        }
-
-        // Draw axes
-        val axisPaint = android.graphics.Paint().apply {
-            color = android.graphics.Color.DKGRAY
-            strokeWidth = 3f
-        }
-
-        // X axis
-        canvas.drawLine(0f, centerY, width, centerY, axisPaint)
-        // Y axis
-        canvas.drawLine(centerX, 0f, centerX, height, axisPaint)
-
-        // Draw origin marker
-        canvas.drawCircle(centerX, centerY, 10f,
-            android.graphics.Paint().apply {
-                color = android.graphics.Color.BLACK
-                style = android.graphics.Paint.Style.FILL
-            })
-
-        // Draw axis labels
-        val textPaint = android.graphics.Paint().apply {
-            color = android.graphics.Color.BLACK
-            textSize = 20f
-            isAntiAlias = true
-        }
-
-        canvas.drawText("X", width - 30f, centerY - 10f, textPaint)
-        canvas.drawText("Y", centerX + 10f, 30f, textPaint)
-        canvas.drawText("0", centerX + 10f, centerY - 10f, textPaint)
+    fun resetPath() {
+        path.reset()
+        currentX = 0f
+        currentY = 0f
+        if (isInitialized) path.moveTo(centerX, centerY)
+        invalidate()
     }
 }
